@@ -20,7 +20,7 @@ interface IWETH9 {
     function balanceOf(address addr) external returns (uint);
 }
 
-contract FreeRiderAttacker is IUniswapV2Callee {
+contract FreeRiderAttack is IUniswapV2Callee {
 
     UniswapV2Pair public immutable uniswapPair;
     IWETH9 public immutable weth;
